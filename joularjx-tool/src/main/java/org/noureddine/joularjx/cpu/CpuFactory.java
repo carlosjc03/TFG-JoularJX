@@ -1,0 +1,205 @@
+/*
+ * Copyright (c) 2021-2026, Adel Noureddine, Université de Pau et des Pays de l'Adour.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the
+ * GNU General Public License v3.0 only (GPL-3.0-only)
+ * which accompanies this distribution, and is available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * Author : Adel Noureddine
+ */
+
+package org.noureddine.joularjx.cpu;
+
+import org.noureddine.joularjx.utils.AgentProperties;
+import org.noureddine.joularjx.utils.JoularJXLogging;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Factory class for the {@link Cpu} implementation
+ */
+public class CpuFactory {
+
+    private static final Logger logger = JoularJXLogging.getLogger();
+
+    /**
+     * Select the supported {@link Cpu} implementation
+     * 
+     * @param properties the properties passed to the agent
+     * @return the selected CPU implementation
+     */
+    public static Cpu getCpu(final AgentProperties properties) {
+        // Get OS
+        String osName = System.getProperty("os.name").toLowerCase();
+        String osArch = System.getProperty("os.arch").toLowerCase();
+        logger.info("Initializing for platform: '" + osName + "' running on architecture: '" + osArch + '\'');
+
+        if (properties.isVirtualMachine()) {
+            logger.info("Initializing for running inside a virtual machine");
+            return new VirtualMachine(properties.getVMPowerPath(), properties.getVMPowerFormat());
+        }
+        
+        // If Joular Core is enabled, then use instead of other approaches
+        if (properties.isJoularCoreEnabled()) {
+            String ringBufferPath = properties.getJoularCoreRingBufferPath();
+            if (properties.isJoularCoreRingBufferEnabled() && ringBufferPath != null && !ringBufferPath.isBlank()) {
+                logger.info("Initializing for Joular Core ring buffer");
+                return new JoularCoreRingBufferCpu(ringBufferPath);
+            }
+
+            logger.info("Initializing for Joular Core");
+            return new JoularCoreCpu(properties.getJoularCorePath(), properties.getJoularCoreParameters());
+        }
+
+        if (osName.contains("win")) {
+            return new IntelWindows(properties.getPowerMonitorPath());
+        }
+
+        if (osName.contains("mac os x")) {
+            return new PowermetricsMacOS();
+        }
+
+        if (!osName.contains("linux")) {
+            logger.log(Level.SEVERE, "Platform not supported. Exiting...");
+            System.exit(1);
+        }
+
+        if (osArch.contains("aarch64") || osArch.contains("arm")) {
+            return new RaspberryPi(getRPiModelName(osArch).orElseGet(() -> {
+                logger.log(Level.SEVERE, "Platform not supported. Exiting...");
+                System.exit(1);
+                return null;
+            }));
+        }
+
+        // Suppose it's x86/64, check for powercap RAPL
+        try {
+            String raplFolderPath = "/sys/class/powercap/intel-rapl/intel-rapl:0";
+            File raplFolder = new File(raplFolderPath);
+            if (raplFolder.exists()) {
+                // Rapl is supported
+                return new RaplLinux();
+            } else {
+                // If no RAPL, then no support
+                logger.log(Level.SEVERE, "Platform not supported. Exiting...");
+                System.exit(1);
+            }
+        } catch (Exception e) {
+            // If no RAPL, then no support
+            logger.log(Level.SEVERE, "Platform not supported. Exiting...");
+            System.exit(1);
+        }
+
+        // Should never reach here because we stop the agent. But the compiler needs the
+        // return to compile the code.
+        return null;
+    }
+
+    /**
+     * Get model name of Raspberry Pi
+     * 
+     * @param osArch OS Architecture (arm, aarch64)
+     * @return Raspberry Pi model name
+     */
+    private static Optional<RaspberryPiModels> getRPiModelName(String osArch) {
+        String deviceTreeModel = "/proc/device-tree/model";
+        File deviceTreeModelFile = new File(deviceTreeModel);
+        if (!deviceTreeModelFile.exists()) {
+            return Optional.empty();
+        }
+
+        Path deviceTreeModelPath = Path.of(deviceTreeModel);
+        try {
+            List<String> allLines = Files.readAllLines(deviceTreeModelPath);
+            for (String currentLine : allLines) {
+                // SBC models and revisions
+                if (currentLine.contains("Raspberry Pi 5 Model B Rev 1.0")) {
+                    if (osArch.contains("aarch64")) {
+                        return Optional.of(RaspberryPiModels.RPI_5B_10_64);
+                    }
+                } else if (currentLine.contains("Raspberry Pi 400 Rev 1.0")) {
+                    if (osArch.contains("aarch64")) {
+                        return Optional.of(RaspberryPiModels.RPI_400_10_64);
+                    }
+                } else if (currentLine.contains("Raspberry Pi 4 Model B Rev 1.2")) {
+                    if (osArch.contains("aarch64")) {
+                        return Optional.of(RaspberryPiModels.RPI_4B_12_64);
+                    } else {
+                        return Optional.of(RaspberryPiModels.RPI_4B_12);
+                    }
+                } else if (currentLine.contains("Raspberry Pi 4 Model B Rev 1.1")) {
+                    if (osArch.contains("aarch64")) {
+                        return Optional.of(RaspberryPiModels.RPI_4B_11_64);
+                    } else {
+                        return Optional.of(RaspberryPiModels.RPI_4B_11);
+                    }
+                } else if (currentLine.contains("Raspberry Pi 3 Model B Plus Rev 1.3")) {
+                    return Optional.of(RaspberryPiModels.RPI_3BP_13);
+                } else if (currentLine.contains("Raspberry Pi 3 Model B Rev 1.2")) {
+                    return Optional.of(RaspberryPiModels.RPI_3B_12);
+                } else if (currentLine.contains("Raspberry Pi 2 Model B Rev 1.1")) {
+                    return Optional.of(RaspberryPiModels.RPI_2B_11);
+                } else if (currentLine.contains("Raspberry Pi Model B Plus Rev 1.2")) {
+                    return Optional.of(RaspberryPiModels.RPI_1BP_12);
+                } else if (currentLine.contains("Raspberry Pi Model B Rev 2")) {
+                    return Optional.of(RaspberryPiModels.RPI_1B_2);
+                } else if (currentLine.contains("Raspberry Pi Zero W Rev 1.1")) {
+                    return Optional.of(RaspberryPiModels.RPI_ZW_11);
+                } else if (currentLine.contains("ASUS Tinker Board (S)")) {
+                    return Optional.of(RaspberryPiModels.ASUSTBS);
+                }
+
+                // Support other revisions of supported SBC models
+                // By using existing power models of related revision
+                if (currentLine.contains("Raspberry Pi 5 Model B")) {
+                    if (osArch.contains("aarch64")) {
+                        return Optional.of(RaspberryPiModels.RPI_5B_10_64);
+                    }
+                } else if (currentLine.contains("Raspberry Pi 400")) {
+                    if (osArch.contains("aarch64")) {
+                        return Optional.of(RaspberryPiModels.RPI_400_10_64);
+                    }
+                } else if (currentLine.contains("Raspberry Pi 4 Model B")) {
+                    if (osArch.contains("aarch64")) {
+                        return Optional.of(RaspberryPiModels.RPI_4B_12_64);
+                    } else {
+                        return Optional.of(RaspberryPiModels.RPI_4B_12);
+                    }
+                } else if (currentLine.contains("Raspberry Pi 3 Model B Plus")) {
+                    return Optional.of(RaspberryPiModels.RPI_3BP_13);
+                } else if (currentLine.contains("Raspberry Pi 3 Model B")) {
+                    return Optional.of(RaspberryPiModels.RPI_3B_12);
+                } else if (currentLine.contains("Raspberry Pi 2 Model B")) {
+                    return Optional.of(RaspberryPiModels.RPI_2B_11);
+                } else if (currentLine.contains("Raspberry Pi Model B Plus")) {
+                    return Optional.of(RaspberryPiModels.RPI_1BP_12);
+                } else if (currentLine.contains("Raspberry Pi Model B")) {
+                    return Optional.of(RaspberryPiModels.RPI_1B_2);
+                } else if (currentLine.contains("Raspberry Pi Zero W")) {
+                    return Optional.of(RaspberryPiModels.RPI_ZW_11);
+                } else if (currentLine.contains("ASUS Tinker Board")) {
+                    return Optional.of(RaspberryPiModels.ASUSTBS);
+                }
+            }
+        } catch (IOException exception) {
+            logger.throwing(CpuFactory.class.getName(), "getRPiModelName", exception);
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Private constructor which hides the default one
+     */
+    private CpuFactory() {
+
+    }
+}
