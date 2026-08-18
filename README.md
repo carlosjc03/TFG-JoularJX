@@ -1,166 +1,176 @@
-# <a href="https://www.noureddine.org/research/joular/"><img src="https://raw.githubusercontent.com/joular/.github/main/profile/joular.png" alt="Joular Project" width="64" /></a> JoularJX :microscope:
+# JoularJX para el TFG — Guía para no perderse (otra vez)
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue)](https://www.gnu.org/licenses/gpl-3.0)
-[![Java](https://img.shields.io/badge/Made%20with-Java-orange)](https://openjdk.java.net)
+Esto es la chuleta de todo lo que hicimos para dejar JoularJX funcionando de verdad, en Linux, después de que Windows nos diera por saco con un bug del driver de AMD que ni el propio desarrollador ha arreglado del todo. Está escrito para que dentro de 3 meses, cuando se te haya olvidado todo, puedas volver aquí y no tengas que reinventar la rueda.
 
-![JoularJX Logo](joularjx.png)
+## Qué es JoularJX
 
-JoularJX is a Java-based agent for software power monitoring at the source code level.
+Es un agente de Java que se engancha a tu programa cuando lo arrancas y te dice **cuánta energía consume cada método**, sin tener que tocar tu código para nada. Perfecto para el TFG de comparar Jackson vs Gson.
 
-Detailed documentation (including user and reference guides) are available at: [https://joular.github.io/joularjx/](https://joular.github.io/joularjx/).
+## Por qué en Linux y no en Windows
 
-## :rocket: Features
+Porque en Windows necesitas un driver + un programa intermedio (Scaphandre / WinPowerMonitor) para leer la energía de la CPU, y ese driver tiene un bug conocido con procesadores AMD Ryzen (issue abierto en su GitHub desde 2025, sin arreglo real). Da igual lo que instales, siempre falla con "función incorrecta". En Linux, el propio kernel expone la energía directamente vía RAPL, sin necesitar nada de eso. Menos piezas, menos lío.
 
-- Monitor power consumption of each method at runtime
-- Uses a Java agent, no source code instrumentation needed
-- Uses Intel RAPL (powercap interface) for getting accurate power reading on GNU/Linux, our research-based regression models on Raspberry Pi devices, and a custom program monitor (using a RAPL driver) for accurate power readings on Windows
-- Monitor energy of Java applications running in virtual machines
-- Provides real-time power consumption of every method in the monitored program
-- Provides total energy for every method on program exit
+Si algún día quieres intentarlo otra vez en Windows, el bug está documentado aquí: https://github.com/joular/WinPowerMonitor/issues/2
 
-## :package: Compilation and Installation
+## Requisitos
 
-To build JoularJX, you need Java 11+ and Maven, then just build:
+- Ubuntu/Debian (o derivado)
+- Kernel 5.11 o superior (para que RAPL funcione bien en Ryzen)
+- CPU Intel o AMD Ryzen (o más nuevo)
 
+Comprueba el kernel con:
+
+```bash
+uname -r
 ```
+
+## Paso 1: instalar lo básico
+
+Java, Maven y git, todo de una:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install openjdk-17-jdk maven git acl -y
+```
+
+Comprueba que se instaló bien:
+
+```bash
+java -version
+mvn -version
+```
+
+(Con Java 17 vas sobrado, JoularJX solo pide 11+.)
+
+## Paso 2: clonar y compilar JoularJX
+
+```bash
+cd ~/Escritorio
+git clone https://github.com/joular/joularjx.git
+cd joularjx
 mvn clean install
 ```
 
-Alternatively, you can use the Maven wrapper shipped with the project with the command:
+Si al final te sale `BUILD SUCCESS`, perfecto. El jar te lo genera en `target/joularjx-3.1.0.jar` (el número de versión puede variar, mira dentro de `target/` con `ls target/` si no coincide).
 
-```
-Linux: ./mvnw clean install
-Windows: ./mvnw.cmd clean install
-```
+## Paso 3: comprobar que RAPL funciona ANTES de meterte con Java
 
-JoularJX gets CPU power reading from various sources, depending on the platform or operating system.
-In particuliar, it can get the data from two main approaches:
-- Get the power data from [Joular Core](https://github.com/joular/joularcore), either through its standard output or through a shared memory buffer ring (IPC). Joular Core works on all platforms and operating systems.
-- Get the data through its internal calculation from RAPL (Linux, Windows), powermetrics (macOS) or our own regression models (Raspberry Pi).
-- In addition, in virtual machines, JoularJX reads the power consumption of the virtual machine (measured in the host) from a file shared between the host and the guest.
+Esto te ahorra media hora de frustración si algo va mal más adelante. Sin instalar nada de Java, solo mirando si el kernel lee energía real:
 
-If using JoularJX internal calculation, you need:
-- On Windows, to read the data from the RAPL driver, we use a custom program monitor called [Power Monitor for Windows](https://github.com/joular/WinPowerMonitor). It used to be part of JoularJX, but now it is in its own repository. Download the binary (or compile the source code), and specify its path in ```config.properties```. Runs on Intel or AMD CPUs (since Ryzen). You can substitute that software with [Joular Core](https://github.com/joular/joularcore).
-- On PC/server GNU/Linux, JoularJX uses Intel RAPL interface through powercap, and therefore requires running on an Intel CPU or an AMD CPU (since Ryzen).
-- On macOS, JoularJX uses `powermetrics`, a tool bundled with macOS which requires running with `sudo` access. It is recommended to authorize the current users to run `/usr/bin/powermetrics` without requiring a password by making the proper modification to the `sudoers` file.
-- On Raspberry Pi devices on GNU/Linux, JoularJX uses our own research-based regression models to estimate CPU power consumption with support for the following device models (we support all revisions of each model lineup. However, the model is generated and trained on a specific revision, listed between brackets, and the accuracy is best on this particular revision):
-  - Model Zero W (rev 1.1), for 32-bit OS
-  - Model 1 B (rev 2), for 32-bit OS
-  - Model 1 B+ (rev 1.2), for 32-bit OS
-  - Model 2 B (rev 1.1), for 32-bit OS
-  - Model 3 B (rev 1.2), for 32-bit OS
-  - Model 3 B+ (rev 1.3), for 32-bit OS
-  - Model 4 B (rev 1.1, and rev 1.2), for both 32 bits and 64-bit OS
-  - Model 400 (rev 1.0), for 64-bit OS
-  - Model 5 B (rev 1.0), for 64-bit OS
-We also support Asus Tinker Board (S).
-
-## :bulb: Usage
-
-JoularJX is a Java agent where you can simply hook it to the Java Virtual Machine when starting your Java program's main class:
-
-```
-java -javaagent:joularjx-$version.jar YourProgramMainClass
+```bash
+sudo cat /sys/class/powercap/intel-rapl:0/energy_uj
 ```
 
-If your program is a JAR file, then just run it as usual while adding JoularJX:
+Espera 2 segundos y vuelve a ejecutar el mismo comando. Si el número ha subido, RAPL funciona de verdad y puedes seguir tranquilo.
 
+### (Opcional) Dar permisos para no usar sudo cada vez
+
+Si te cansas de poner `sudo` en cada ejecución, puedes dar permiso de lectura a tu usuario (aunque se resetea cada vez que reinicias el PC, así que toca repetirlo cada sesión):
+
+```bash
+sudo setfacl -Rm u:$USER:r /sys/class/powercap/intel-rapl:*
 ```
-java -javaagent:joularjx-$version.jar -jar yourProgram.jar
+
+Si esto te da problemas raros de permisos, no pasa nada, usa `sudo java ...` cada vez y ya está, funciona exactamente igual.
+
+## Paso 4: configurar el filtro (config.properties)
+
+El fichero `config.properties` está en la raíz del repo (`joularjx/config.properties`). Dentro tiene una línea que dice `filter-method-names=Package`, que es un placeholder de ejemplo, no algo real. Hay que cambiarla por el nombre de tu clase o paquete real, si no, la carpeta de resultados filtrados (`app/`) te va a salir vacía.
+
+Para nuestra prueba con `Test.java` (sin paquete):
+
+```bash
+sed -i 's/filter-method-names=Package/filter-method-names=Test/' config.properties
 ```
 
-JoularJX will generate multiple CSV files according to the configuration settings (in ```config.properties```), and will create these files in a ```joularjx-results```folder.
+**Importante:** cuando montes el proyecto de verdad (Jackson/Gson), cambia `Test` por el paquete real de tu proyecto (por ejemplo `com.tfg.jsonbench`). Esto **solo se hace una vez** por proyecto, no hace falta repetirlo en cada ejecución.
 
-The generated files are available under the following folder structure:
-- joularjx-results
-  - appName-PID-start_timestamp
-    - all (power/energy data for all methods, including the JDK ones)
-      - runtime (power consumption every second)
-        - calltree (consumption for each call tree branch)
-        - methods (consumption for each methods)
-      - total (total energy consumption, generated at the program's end)
-        - calltree
-        - methods
-      - evolution (power consumption evolution of every method, throughout the execution of the application)
-    - app (power/energy data for methods of the monitored application, according to the ```filter-method-names``` setting)
-      - runtime
-        - calltree
-        - methods
-      - total
-        - calltree
-        - methods
-      - evolution
+## Paso 5: probar con un programa mínimo
 
-JoularJX can be configured by modifying the ```config.properties``` files:
-- ```filter-method-names```: list of strings which will be used to filter the monitored methods (see Generated files below for explanations).
-- ```save-runtime-data```: write runtime methods power consumption in a CSV file.
-- ```overwrite-runtime-data```: overwrite runtime power data files, or if set to false, it will write new files for each monitoring cycle.
-- ```logger-level```: set the level of information (by logger) given by JoularJX in the terminal (allowed values: OFF, INFO, WARNING, SEVERE).
-- ```powermonitor-path```: Full path to the [Power Monitor for Windows](https://github.com/joular/WinPowerMonitor) program (only for Windows).
-- ```track-consumption-evolution```: generate CSV files for each method containing details of the method's consumption over the time. Each consumption value is mapped to an Unix timestamp.
-- ```hide-agent-consumption```: if set to true, the energy consumption of the agent threads will not be reported.
-- ```enable-call-trees-consumption```: compute methods call trees energy consumption. A CSV file will be generated at the end of the agent's execution, associating to each call tree it's total energy consumption.
-- ```save-call-trees-runtime-data```: write runtime call trees power consumption in a CSV file. For each monitoring cycle (1 second), a new CSV file will be generated, containing the runtime power consumption of the call trees. The generated files will include timestamps in their names.
-- ```overwrite-call-trees-runtime-data```: overwrite runtime call trees power data file, or if set to false, it will write new file for each monitoring cycle.
-- ```application-server```: properly handles application servers and frameworks (Sprig Boot, Tomcat, etc.). Set ```true``` when running on application servers. If false, the monitoring loop will check if the JVM is destroyed, hence closing JoularJX when the application ends (in regular Java application). If true, JoularJX will continue to monitor correctly as the JVM isn't destroyed in a application server.
-- ```vm-power-path```: the path for the power consumption of the virtual machine. Inside a virtual machine, indicate the file containing power consumption of the VM (which is usually a file in the host that is shared with the guest).
-- ```vm-power-format```: power format of the shared VM power file. We currently support two formats: ```watts``` (a file containing one float value which is the power consumption of the VM), and ```powerjoular``` (a csv file generated by [PowerJoular](https://github.com/joular/powerjoular) in the host, containing 3 columns: timestamp, CPU utilization of the VM and CPU power of the VM).
-- `joular-core`: if set to `true`, use Joular Core instead of JoularJX internal CPU power calculations.
-- `joular-core-ring-buffer`: if [Joular Core](https://github.com/joular/joularcore) is set to `true`, and this property is also set to `true`, then get power data from Joular Core through a shareed memory ring buffer.
-- `joular-core-path`: the full path of [Joular Core](https://github.com/joular/joularcore) binary.
-- `joular-core-parameters`: the parameters to run Joular Core with. It must be `-c cpu -i`.
-- `joular-core-ringbuffer-path`: the path to Joular Core ring buffer.
+Crea un `Test.java` cualquiera que tarde un poco en ejecutarse (para que dé tiempo a medir algo):
 
-You can install the jar package (and the PowerMonitor.exe on Windows) wherever you want, and call it in the ```javaagent``` with the full path.
-However, ```config.properties``` must either be copied to the same folder as where you run the Java command or its location must be set with the ```-Djoularjx.config=/path/to/config.properties``` property when running your program.
-
-In virtual machines, JoularJX requires two steps:
-- Installing a power monitoring tool in the host machine, which will monitor the virtual machine power consumption every second and writing it to a file (to be shared with the guest VM).
-For example, you can use our tools: [Joular Core](https://github.com/joular/joularcore) or [PowerJoular](https://github.com/joular/powerjoular).
-- Use JoularJ in the guest VM while specifying the path of the power file shared with the host and its format.
-
-## Generated files
-
-For real-time power data or the total energy at the program exit, JoularJX generated two CSV files:
-
-- A file which contains power or energy data for all methods, which include the JDK's ones.
-- A *filtered file* which only includes the power or energy data of those filtered methods (can be configured in ```config.properties```). This data is not just a subset of the first data file, but rather a recalculation done by JoularJX to provide accurate data: methods that start with the filtered keyword, will be allocated the power or energy consumed by the JDK methods that it calls.
-
-For example, if ```Package1.MethodA``` calls ```java.io.PrintStream.println``` to print some text to a terminal, then we calculate:
-
-- In the first file, the power or energy consumed by ```println``` separately from ```MethodA```. The latter power consumption won't include those consumed by ```println```.
-- In the second file, if we filter methods from ```Package1```, then the power consumption of ```println``` will be added to ```MethodA``` power consumption, and the file will only provide power or energy of ```Package1``` methods.
-
-We manage to do this by analyzing the stacktrace of all running threads on runtime.
-
-## JoularJX Reader
-
-JoularJX Reader is a GUI to process, analyze and visualize JoularJX generated energy files.
-It is available at its [own repository here](https://github.com/joular/joularjx-reader).
-
-## :bookmark_tabs: Cite this work
-
-To cite our work in a research paper, please cite our paper in the 18th International Conference on Intelligent Environments (IE2022).
-
-- **PowerJoular and JoularJX: Multi-Platform Software Power Monitoring Tools**. Adel Noureddine. In the 18th International Conference on Intelligent Environments (IE2022). Biarritz, France, 2022.
-
+```bash
+nano Test.java
 ```
-@inproceedings{noureddine-ie-2022,
-  title = {PowerJoular and JoularJX: Multi-Platform Software Power Monitoring Tools},
-  author = {Noureddine, Adel},
-  booktitle = {18th International Conference on Intelligent Environments (IE2022)},
-  address = {Biarritz, France},
-  year = {2022},
-  month = {Jun},
-  keywords = {Power Monitoring; Measurement; Power Consumption; Energy Analysis}
+
+Pega esto:
+
+```java
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        long sum = 0;
+        for (long i = 0; i < 5_000_000_000L; i++) {
+            sum += i;
+        }
+        System.out.println("Resultado: " + sum);
+    }
 }
 ```
 
-## :newspaper: License
+Guarda con `Ctrl+O`, Enter, `Ctrl+X`. Compila y ejecuta con el agente enganchado:
 
-JoularJX is licensed under the GNU GPL 3 license only (GPL-3.0-only).
+```bash
+javac Test.java
+sudo java -javaagent:target/joularjx-3.1.0.jar Test
+```
 
-Copyright (c) 2021-2026, Adel Noureddine, Université de Pau et des Pays de l'Adour.
-All rights reserved. This program and the accompanying materials are made available under the terms of the GNU General Public License v3.0 only (GPL-3.0-only) which accompanies this distribution, and is available at: https://www.gnu.org/licenses/gpl-3.0.en.html
+Si todo va bien, te sale algo como:
 
-Author : Adel Noureddine
+```
+Program consumed 37,16 joules
+```
+
+## Paso 6: ver los resultados
+
+Cada ejecución crea una carpeta nueva con un timestamp dentro de `joularjx-result/`. Mira cuál es la más reciente:
+
+```bash
+ls joularjx-result/
+```
+
+Y dentro de esa carpeta, lo que más te interesa es esto:
+
+```bash
+cat joularjx-result/CARPETA_QUE_TE_HAYA_SALIDO/app/total/methods/joularJX-*-filtered-methods-energy.csv
+```
+
+(Cambia `CARPETA_QUE_TE_HAYA_SALIDO` por el nombre real que te haya salido en el `ls` de arriba.)
+
+Deberías ver algo como:
+
+```
+Test.main,34.4440
+```
+
+Eso es: tu método, y los julios que ha consumido. Eso es justo lo que necesitas para el TFG.
+
+### Qué carpetas tienes ahí dentro
+
+- `app/total/methods/` → consumo total de TU código, ya filtrado. **Esta es la que más vas a usar.**
+- `all/total/methods/` → consumo de TODO, incluido lo del JDK por debajo.
+- `runtime/` → cómo evoluciona el consumo mientras se ejecuta el programa.
+- `calltrees/` → consumo por árbol de llamadas completo, no solo método suelto.
+
+## El flujo que vas a repetir siempre (guárdate esto)
+
+Cada vez que quieras medir algo nuevo, en el 90% de los casos solo necesitas esto:
+
+```bash
+# 1. Compila tu código (solo si lo has cambiado)
+javac TuClase.java
+# o si es un proyecto Maven completo:
+mvn package
+
+# 2. Ejecuta con el agente
+sudo java -javaagent:/ruta/a/joularjx-3.1.0.jar TuClasePrincipal
+
+# 3. Mira los resultados (carpeta más reciente)
+ls joularjx-result/
+cat joularjx-result/CARPETA/app/total/methods/joularJX-*-filtered-methods-energy.csv
+```
+
+El `config.properties` (el filtro del paso 4) solo lo tocas UNA VEZ por proyecto, no en cada ejecución.
+
+## Siguiente paso pendiente
+
+Montar el proyecto real con Jackson y Gson (dependencias Maven + casos de prueba con JMH) y repetir todo este proceso sobre ese código para comparar el consumo de las dos librerías. Eso lo dejamos para otra sesión.
