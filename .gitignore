@@ -2,3 +2,5 @@ target/
 joularjx-result/
 joularjx/target/
 joularjx/joularjx-result/
+.*.swp
+.~lock.*#
