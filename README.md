@@ -440,9 +440,9 @@ Debería listar Jackson, Gson y JMH con sus dependencias internas colgando (jack
 cp ~/Escritorio/tfg/joularjx-tool/config.properties .
 ```
 
-El filtro se ajustará a `com.tfg.jsonbench` cuando escribamos las clases (siguiente sesión).
+El filtro se ajustará a `com.tfg.jsonbench` en la siguiente sección, cuando ya tengamos las clases escritas.
 
-### Cómo se organizará el código (para la próxima sesión)
+### Cómo se organiza el código
 
 Un solo proyecto, pero con un subpaquete por librería para tenerlo ordenado:
 
@@ -457,12 +457,452 @@ jackson-gson-benchmark/
         └── GsonBenchmark.java       → package com.tfg.jsonbench.gson;
 ```
 
-Como los dos subpaquetes cuelgan de `com.tfg.jsonbench`, con poner `filter-method-names=com.tfg.jsonbench` en el config, JoularJX filtra los dos a la vez.
+Como los dos subpaquetes cuelgan de `com.tfg.jsonbench`, con poner `filter-method-names=com.tfg.jsonbench` en el config, JoularJX filtra los dos a la vez. Los ficheros `.java` concretos se crean en la siguiente sección.
 
 ### Sobre NetBeans / IDEs
 
 No hace falta ningún IDE para nada de esto. Se puede escribir el código en NetBeans, VSCode o lo que sea (por comodidad, autocompletado, etc.), pero **para medir con JoularJX siempre vamos por terminal**, no por el botón "Run" del IDE. Razón: para inyectar el agente hay que añadir el flag `-javaagent:...` a la JVM, y aunque los IDEs permiten poner "VM Options" personalizadas, es un lío extra (rutas raras, el config.properties no siempre se coge de donde esperas) frente a un simple `mvn package` + `sudo java -javaagent:... ClaseMain` en terminal, que es 100% reproducible.
 
+## Dejar preparadas las clases de benchmark (Jackson y Gson con JMH)
+
+### El "fork" de JMH y por qué importa para JoularJX
+
+Cuando ejecutamos un benchmark con JMH, JMH **no mide en el mismo proceso Java desde el que lo lanzamos**. Por defecto arranca un **proceso Java nuevo y separado** (un "fork") y hace las mediciones ahí dentro, a propósito: un proceso limpio y aislado da resultados más fiables.
+
+El problema: el agente JoularJX se engancha con `-javaagent:...` a UN proceso. Si lo enganchamos al proceso principal (el que lanza JMH), el agente no llega al proceso hijo, que es donde JMH mide de verdad. Resultado: JoularJX no captura nada útil.
+
+La solución es decirle a JMH que, al crear el proceso hijo, lo arranque ya con el agente enganchado. Eso se hace con la anotación `@Fork` en cada clase de benchmark:
+
+```java
+@Fork(value = 1, jvmArgs = {"-javaagent:/home/carlos/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar"})
+```
+
+Así el `-javaagent` viaja al proceso donde JMH mide de verdad, y JoularJX sí captura el consumo. Este es el único truco fino de todo el montaje.
+
+### Las DOS formas de enganchar el agente (importante para no liarse)
+
+Hay dos maneras de enganchar JoularJX, según el tipo de proyecto. Es el MISMO agente, pero enganchado distinto porque el proceso arranca distinto:
+
+**Forma A — por línea de comandos (para clases sueltas, tipo `Ejemplo.java`)**
+
+El agente se escribe a mano en el comando cada vez que se ejecuta:
+
+```bash
+sudo java -javaagent:$HOME/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar com.tfg.pruebas.Ejemplo
+```
+
+Esto sirve cuando el programa es normal (arranca, hace algo, termina). El agente se engancha directo al proceso que arranca.
+
+**Forma B — con la anotación `@Fork` (para proyectos JMH, tipo Jackson/Gson)**
+
+Aquí el agente NO se pone en el comando. El comando es simplemente:
+
+```bash
+sudo java -jar target/benchmarks.jar
+```
+
+Y el agente va metido DENTRO del código, en la anotación `@Fork` de cada clase de benchmark. Motivo: JMH se va a un proceso hijo a medir (el famoso fork), y si pusiéramos el `-javaagent` en el comando, se engancharía al proceso padre, no al hijo donde se mide de verdad. El `@Fork` es lo que mete el agente en el proceso hijo correcto.
+
+**Regla para saber cuál usar:** ¿es un programa suelto (un `main` normal)? → Forma A (comando). ¿Es un benchmark con JMH? → Forma B (`@Fork` dentro del código).
+
+### ¿Qué clases llevan `@Fork` y cuáles no?
+
+El `@Fork` va en la cabecera (encima del `public class`) de **toda clase que tenga métodos `@Benchmark`**. No en cualquier clase.
+
+- **SÍ lleva `@Fork`:** `JacksonBenchmark`, `GsonBenchmark`, y cualquier clase futura de benchmark que se cree con JMH.
+- **NO lleva `@Fork`:** clases normales que no miden nada. Por ejemplo `Persona.java` (es solo el objeto de datos, no un benchmark) no lo lleva. Tampoco la clase suelta `Ejemplo.java` (a esa se le engancha el agente por comando, Forma A).
+
+O sea: `@Fork` = "esta clase mide energía con JMH". Si una clase solo guarda datos o hace utilidades, no lo lleva.
+
+### Cuidado con la ruta escrita a pelo en el @Fork
+
+El `@Fork` tiene la ruta al jar del agente escrita completa y fija:
+
+```java
+@Fork(value = 1, jvmArgs = {"-javaagent:/home/carlos/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar"})
+```
+
+Si algún día se mueve la carpeta del TFG a otro sitio, o se abre en otro ordenador, esa ruta dejará de existir y fallará. Por eso, si en el futuro algo peta con el agente en los benchmarks, lo PRIMERO que hay que revisar es que esa ruta del `@Fork` siga apuntando al jar real (comprobar con `ls` esa ruta exacta).
+
+### Paso 1: crear los subpaquetes
+
+```bash
+cd ~/Escritorio/tfg/pruebas/jackson-gson-benchmark
+mkdir -p src/main/java/com/tfg/jsonbench/jackson
+mkdir -p src/main/java/com/tfg/jsonbench/gson
+```
+
+### Paso 2: crear una clase de datos común (el objeto que vamos a serializar)
+
+```bash
+nano src/main/java/com/tfg/jsonbench/Persona.java
+```
+
+```java
+package com.tfg.jsonbench;
+
+import java.util.List;
+
+public class Persona {
+    public String nombre;
+    public int edad;
+    public String email;
+    public List<String> hobbies;
+
+    public Persona() {}
+
+    public Persona(String nombre, int edad, String email, List<String> hobbies) {
+        this.nombre = nombre;
+        this.edad = edad;
+        this.email = email;
+        this.hobbies = hobbies;
+    }
+}
+```
+
+### Paso 3: el benchmark de Jackson
+
+```bash
+nano src/main/java/com/tfg/jsonbench/jackson/JacksonBenchmark.java
+```
+
+```java
+package com.tfg.jsonbench.jackson;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tfg.jsonbench.Persona;
+import org.openjdk.jmh.annotations.*;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@State(Scope.Thread)
+@Warmup(iterations = 5, time = 1)
+@Measurement(iterations = 10, time = 1)
+@Fork(value = 1, jvmArgs = {"-javaagent:/home/carlos/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar"})
+public class JacksonBenchmark {
+
+    private ObjectMapper mapper;
+    private Persona persona;
+    private String json;
+
+    @Setup
+    public void preparar() throws Exception {
+        mapper = new ObjectMapper();
+        persona = new Persona("Carlos", 23, "carlos@tfg.com",
+                List.of("leer", "correr", "programar"));
+        json = mapper.writeValueAsString(persona);
+    }
+
+    @Benchmark
+    public String serializar() throws Exception {
+        return mapper.writeValueAsString(persona);
+    }
+
+    @Benchmark
+    public Persona deserializar() throws Exception {
+        return mapper.readValue(json, Persona.class);
+    }
+}
+```
+
+### Paso 4: el benchmark de Gson (mismo objeto, misma estructura)
+
+```bash
+nano src/main/java/com/tfg/jsonbench/gson/GsonBenchmark.java
+```
+
+```java
+package com.tfg.jsonbench.gson;
+
+import com.google.gson.Gson;
+import com.tfg.jsonbench.Persona;
+import org.openjdk.jmh.annotations.*;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@State(Scope.Thread)
+@Warmup(iterations = 5, time = 1)
+@Measurement(iterations = 10, time = 1)
+@Fork(value = 1, jvmArgs = {"-javaagent:/home/carlos/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar"})
+public class GsonBenchmark {
+
+    private Gson gson;
+    private Persona persona;
+    private String json;
+
+    @Setup
+    public void preparar() {
+        gson = new Gson();
+        persona = new Persona("Carlos", 23, "carlos@tfg.com",
+                List.of("leer", "correr", "programar"));
+        json = gson.toJson(persona);
+    }
+
+    @Benchmark
+    public String serializar() {
+        return gson.toJson(persona);
+    }
+
+    @Benchmark
+    public Persona deserializar() {
+        return gson.fromJson(json, Persona.class);
+    }
+}
+```
+
+**Ojo:** en el `@Fork` de las dos clases hay que poner la ruta real al jar del agente. Aquí está puesta `/home/carlos/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar` — comprobar que coincide con la tuya (con `ls`).
+
+### Paso 5: añadir los plugins al pom.xml
+
+Hacen falta DOS plugins en el `pom.xml`:
+
+1. **`maven-compiler-plugin`** con el procesador de anotaciones de JMH. JMH genera al compilar un índice de todos los `@Benchmark` (un fichero `META-INF/BenchmarkList`). A partir de Java moderno (Java 22+, y desde luego con el 25 que tenemos), el compilador ya NO ejecuta procesadores de anotaciones por defecto, así que hay que activarlo a mano. **Sin esto, al lanzar el jar sale el error `Unable to find the resource: /META-INF/BenchmarkList`** (JMH arranca pero no encuentra ningún benchmark).
+2. **`maven-shade-plugin`** para empaquetar todo en un único jar ejecutable (un "uber-jar" que incluye nuestro código + JMH + las librerías dentro). Sin él, `mvn package` genera un jar normal que no sabe arrancar JMH.
+
+Editar el `pom.xml` y añadir este bloque **justo después de** `</dependencies>` (antes de `</project>`). Importante el orden: el compiler primero, el shade después.
+
+```xml
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.openjdk.jmh</groupId>
+                            <artifactId>jmh-generator-annprocess</artifactId>
+                            <version>1.37</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <finalName>benchmarks</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.openjdk.jmh.Main</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+```
+
+(Si hay dudas de cómo queda el `pom.xml` entero con todo junto, está montado completo al final de este documento, en el apartado "pom.xml completo de referencia".)
+
+### Paso 6: ajustar el filtro de JoularJX al paquete
+
+```bash
+sed -i 's/^filter-method-names=.*/filter-method-names=com.tfg.jsonbench/' config.properties
+grep filter-method-names config.properties
+```
+
+Debe salir: `filter-method-names=com.tfg.jsonbench` (capta los dos subpaquetes, jackson y gson, a la vez).
+
+### Paso 7: compilar y empaquetar
+
+```bash
+mvn clean package
+```
+
+Si sale `BUILD SUCCESS`, se genera `target/benchmarks.jar`.
+
+### Paso 8: lanzar los benchmarks
+
+El agente JoularJX ya va inyectado vía el `@Fork` de las clases, así que NO hace falta pasarlo por línea de comandos. Se lanza el jar directamente:
+
+```bash
+sudo java -jar target/benchmarks.jar
+```
+
+Esto tarda un par de minutos. Por consola se ven muchas iteraciones (`Warmup Iteration 1, 2...` e `Iteration 1, 2...`): es JMH ejecutando cada operación en bucle, primero calentando motores (warmup) y luego midiendo 10 veces para sacar una media fiable. Es normal que salgan tantas. Al final JMH saca una tabla comparando Jackson vs Gson.
+
+### Paso 9: entender los DOS tipos de resultado
+
+Aquí hay que tener clara una cosa que despista mucho: salen **dos resultados distintos que miden cosas diferentes**.
+
+**a) La tabla final de JMH = TIEMPO (velocidad), no energía.** Es la tabla que aparece al final en la consola:
+
+```
+Benchmark                                    Mode  Cnt  Score   Error  Units
+c.t.j.gson.GsonBenchmark.deserializar        avgt   10  0,484 ± 0,017  us/op
+c.t.j.gson.GsonBenchmark.serializar          avgt   10  0,492 ± 0,009  us/op
+c.t.j.jackson.JacksonBenchmark.deserializar  avgt   10  0,453 ± 0,003  us/op
+c.t.j.jackson.JacksonBenchmark.serializar    avgt   10  0,236 ± 0,003  us/op
+```
+
+`us/op` = microsegundos por operación. Cuanto MÁS BAJO, más rápido. Esto mide velocidad, no consumo. Está bien tenerlo como dato complementario, pero NO es el objetivo del TFG.
+
+**b) Los CSV de JoularJX = ENERGÍA (julios).** Esto es lo que de verdad importa para el TFG, y va aparte, en ficheros CSV. Cada benchmark genera su propia carpeta dentro de `joularjx-result/` (así que salen 4 carpetas: gson-serializar, gson-deserializar, jackson-serializar, jackson-deserializar).
+
+### La jerarquía de carpetas de JoularJX (cuál mirar y por qué)
+
+Dentro de cada carpeta de resultado hay MUCHAS subcarpetas. La regla de oro: para el TFG siempre se usa **`app/total/methods/`**. El resto son variantes que no hacen falta (o son para análisis avanzado). Nivel por nivel:
+
+- **`app/` vs `all/`**
+  - `app/` → **solo NUESTRO código** (lo que filtramos con `com.tfg.jsonbench`). **Esta es la buena.**
+  - `all/` → absolutamente todo, incluido el JDK, JMH y las librerías por debajo. Ensucia la comparación, no la queremos.
+- **`total/` vs `runtime/`**
+  - `total/` → el consumo **final acumulado** de cada método (un número por método). **Esta es la buena.**
+  - `runtime/` → el consumo **segundo a segundo** (muchas líneas con timestamps). Solo sirve para gráficas de evolución temporal. Para comparar Jackson vs Gson no hace falta.
+- **`methods/` vs `calltrees/`**
+  - `methods/` → consumo por método individual. **Esta es la buena.**
+  - `calltrees/` → consumo por árbol de llamadas (A llamó a B llamó a C). Útil para hotspots profundos, pero no para la comparación básica.
+
+En resumen: `app/total/methods/` = "el consumo total de cada uno de mis métodos". Es exactamente lo que compara Jackson vs Gson.
+
+### Paso 10: sacar los julios de las 4 mediciones de golpe
+
+Como cada benchmark está en una carpeta distinta (con nombres tipo `14879-1787756656320`, donde el número de delante es el PID del proceso, no hace falta usarlo), este comando saca directamente solo las 4 líneas que importan, ya limpias:
+
+```bash
+cd ~/Escritorio/tfg/pruebas/jackson-gson-benchmark
+grep -rh "Benchmark\.\(serializar\|deserializar\)," joularjx-result/*/app/total/methods/joularJX-*-filtered-methods-energy.csv
+```
+
+Debería salir algo como:
+
+```
+com.tfg.jsonbench.jackson.JacksonBenchmark.serializar,495.5177
+com.tfg.jsonbench.jackson.JacksonBenchmark.deserializar,517.3687
+com.tfg.jsonbench.gson.GsonBenchmark.serializar,526.7525
+com.tfg.jsonbench.gson.GsonBenchmark.deserializar,485.9583
+```
+
+Formato de cada línea: `paquete.Clase.metodo,julios`.
+
+### Cómo leer cada CSV (por qué salen 3 líneas y cuál mirar)
+
+Dentro de cada CSV aparecen 3 métodos, pero solo UNO cuenta:
+
+- `...Benchmark.serializar` (o `deserializar`) → **ESTE es el bueno**, el método real. El de los ~500 julios.
+- `...jmh_generated...jmhStub` → código que genera JMH para orquestar el bucle. Ruido, ignorar (gasta ~0-3 julios).
+- `...preparar` → es el método `@Setup` (crear el objeto persona). No es lo que medimos, ignorar.
+
+Regla simple: en cada CSV, quedarse con la línea cuyo método sea `serializar` o `deserializar` "a secas" (sin `jmh_generated` ni `preparar`). El comando `grep` del Paso 10 ya filtra justo esas.
+
+### Cuidado: el "Program consumed X joules" del log NO es el dato
+
+Durante la ejecución sale por consola `Program consumed 528,89 joules` (o similar) varias veces. Ese número es el consumo de **TODO el proceso** (arranque de la JVM, warmup, JMH, todo junto). El CSV filtrado (`app/`) es el que aísla solo el consumo de NUESTRO método, que es el que sirve para comparar de forma justa. No confundir uno con otro.
+
+### MUY IMPORTANTE para el TFG: una sola ejecución no vale
+
+Estos números (~500 julios) son de UNA sola ejecución. Hay variabilidad real entre corridas (estado de la CPU, temperatura, RAPL, etc.). Cuando las diferencias son de ~30 julios sobre 500, podrían estar dentro del margen de ruido. Para la memoria hay que **repetir la medición varias veces (5-10 corridas), sacar la media y la desviación**, y solo entonces sacar conclusiones. Una sola ejecución sirve para verificar que el montaje funciona, no como resultado definitivo.
+
+### Ideas para ampliar (para el análisis del TFG)
+
+- Repetir cada medición varias veces (5-10) y promediar, para tener resultados estadísticamente sólidos (esto es lo más importante).
+- Añadir objetos de distintos tamaños de payload (pequeño / mediano / grande), como pide el anteproyecto.
+- Añadir un objeto "complejo" (anidado, con listas de listas) además del simple.
+- Probar distintos valores de `stack-monitoring-sample-rate` para ver el trade-off precisión vs overhead (sección de limitaciones).
+- Explorar los datos adicionales (`runtime/` para evolución temporal, `calltrees/` para hotspots) como material complementario.
+
 ## Siguiente paso pendiente
 
-Escribir las clases `JacksonBenchmark.java` y `GsonBenchmark.java` con las anotaciones `@Benchmark` de JMH (serialización y deserialización, con distintos tamaños de payload: pequeño, mediano, grande), ajustar `filter-method-names=com.tfg.jsonbench` en el config, y lanzar las primeras mediciones reales para comparar el consumo de las dos librerías.
+El montaje completo funciona de punta a punta. Lo que queda es el trabajo de análisis del TFG: repetir las mediciones varias veces para promediar, ampliar los casos de prueba (tamaños de payload, objeto complejo), copiar los CSV buenos a la carpeta `resultados/`, y redactar el análisis comparativo (consumo por operación, hotspots, limitaciones).
+
+## pom.xml completo de referencia
+
+Este es el `pom.xml` entero, con las dependencias (Paso 2 de la sección de Maven) y los dos plugins (Paso 5) ya montados juntos. Si en algún momento hay dudas de dónde va cada cosa, este es el fichero final tal cual debe quedar:
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.tfg</groupId>
+    <artifactId>jsonbench</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Jackson -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.18.2</version>
+        </dependency>
+
+        <!-- Gson -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+
+        <!-- JMH -->
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>1.37</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>1.37</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.openjdk.jmh</groupId>
+                            <artifactId>jmh-generator-annprocess</artifactId>
+                            <version>1.37</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <finalName>benchmarks</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.openjdk.jmh.Main</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
