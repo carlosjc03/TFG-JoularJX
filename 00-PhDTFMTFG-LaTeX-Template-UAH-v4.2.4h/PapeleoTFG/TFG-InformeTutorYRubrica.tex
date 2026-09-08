@@ -1,0 +1,252 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Report for the Final Degree Project (TFG) Advisor
+%
+% Based on the structure of anteproyecto.tex
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[10pt,a4paper,oneside]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BEGIN Preamble and configuration section
+%
+\input{../Config/preamble.tex}    % DO NOT TOUCH THIS LINE. You can edit
+                                  % the file to modify some default settings
+
+\input{../Config/myconfig.tex}    % DO NOT TOUCH THIS LINE, but EDIT THIS FILE
+                                  % to set your specific settings (related
+                                  % to the document language, your degree,
+                                  % document details (such as title, author
+                                  % (you), your email, name of the tribunal
+                                  % members, document year, keyword and
+                                  % palabras clave) and link colors), and
+                                  % define your commonly used commands
+                                  % (some examples are provided).
+
+\input{../Config/postamble.tex}   % DO NOT TOUCH THIS LINE. Yes, I know,
+% "postamble" is not a valid word... :-)
+
+%\usepackage[table]{xcolor}   % for \columncolor
+%\usepackage{array}           % for m‐column spec
+\usepackage{booktabs}        % nicer rules (optional)
+
+\newcolumntype{M}[1]{%
+  >{\cellcolor[HTML]{CCCCCC}\raggedright\arraybackslash}%
+  m{#1}%
+}
+\setlength{\extrarowheight}{0pt}
+
+%\setlength{\extrarowheight}{0.8em}
+
+
+%
+% END Preamble and configuration section
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\title{Informe del Tutor Académico y Rúbrica}  % Title of the report
+\date{\today}                                  % Date of the report
+\author{\myAcademicTutorFullName}              % Advisor's name
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Let's start with the real stuff
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BEGIN within-document configuration, frontpage and cover pages generation
+%
+\input{../Config/setlanguagedependentissues.tex} % DO NOT TOUCH THIS LINE
+%
+% END within-document configuration, frontpage and cover pages generation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BEGIN Report content
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\noindent
+\begin{tabular}{|M{\textwidth}|}
+\hline
+\textbf{\small DATOS DEL ESTUDIANTE}\vspace*{-5pt}\\
+\hline
+\end{tabular}
+
+\begin{description}
+  \item[Nombre y apellidos:] \myAuthorFullName
+  \item[N.I.F.:] \myAuthorDNI
+  \item[Correo electrónico:] \myAuthorEmail
+  \item[Departmento:] \myDepartment
+  \item[Titulación (Plan de Estudios):] \myDegreefull
+  \item[Título del TFG:] \myBookTitleSpanish
+  \ifthenelse{\equal{\myLanguage}{english}}       % DO NOT TOUCH THIS LINE
+  {                                               % DO NOT TOUCH THIS LINE
+  \item[Título en inglés:] \myBookTitleEnglish    % DO NOT TOUCH THIS LINE
+  }                                               % DO NOT TOUCH THIS LINE
+  {                                               % DO NOT TOUCH THIS LINE
+  }                                               % DO NOT TOUCH THIS LINE
+
+\end{description}
+
+\thispagestyle{plain}
+%\pagestyle{empty} % Remove headers and footers
+\fancyhf{} % Clear existing headers and footers
+\fancyfoot[C]{\thepage} % Print page number at the center bottom
+
+
+\vspace{0.5cm}
+
+%\section*{\normalsize RESULTADOS DE LA APLICACIÓN DE LA HERRAMIENTA ANTIPLAGIO}
+\noindent
+\begin{tabular}{|M{\textwidth}|}
+\hline
+\textbf{\small RESULTADOS DE LA APLICACIÓN DE LA HERRAMIENTA ANTIPLAGIO}\vspace*{-5pt}\\
+\hline
+\end{tabular}
+
+
+\begin{description}
+  \item[Datos de coincidencias:] ~
+        \vspace{5cm}
+  \item[Observaciones:] ~
+        \vspace{5cm}
+  \item[Conclusión al resultado de la herramienta antiplagio:] ~
+        \vspace{5cm}
+\end{description}
+
+\newpage
+
+\thispagestyle{plain}
+
+\noindent \textbf{\small ACTA Y RÚBRICA DE DEFENSA DE TRABAJO DE FIN DE GRADO. CURSO \myThesisAcademicYear}
+
+\vspace{0.5cm}
+
+%\section*{\normalsize \MakeUppercase{\wordTutorOrTutora} \MakeUppercase{\wordAcademicoOrAcademica} DE LA UNIVERSIDAD DE ALCALÁ}
+
+\noindent
+\begin{tabular}{|M{\textwidth}|}
+\hline
+\textbf{\small \MakeUppercase{\wordTutorOrTutora} \MakeUppercase{\wordAcademicoOrAcademica} DE LA UNIVERSIDAD DE ALCALÁ}\vspace*{-5pt}\\
+\hline
+\end{tabular}
+
+
+
+\begin{description}
+  \item[Nombre:] \myAcademicTutorFullName
+  \item[Cargo:] \myAcademicTutorPosition
+  \item[Correo electrónico:] \myAcademicTutorEmail
+\end{description}
+
+\vspace{0.25cm}
+
+\ifthenelse{\equal{\myCoTutorFullName}{}}
+{
+}
+{
+%\section*{\normalsize \MakeUppercase{\wordCoTutorOrCoTutora}}
+
+\noindent
+\begin{tabular}{|M{\textwidth}|}
+\hline
+\textbf{\small \MakeUppercase{\wordCoTutorOrCoTutora}}\vspace*{-5.5pt}\\
+\hline
+\end{tabular}
+
+
+\begin{description}
+  \item[Nombre:] \myCoTutorFullName
+  \item[Cargo:] \myCoTutorPosition
+  \item[Correo electrónico:] \myCoTutorEmail
+\end{description}
+}
+
+\vspace{0.25cm}
+
+%\section*{\normalsize CALIFICACIÓN (hasta 7 puntos, según rúbrica de evaluación):  \myAcademicTutorGrade}
+
+\noindent
+\begin{tabular}{|M{\textwidth}|}
+  \hline
+  \cellcolor[HTML]{FFFFFF}
+  \textbf{\small CALIFICACIÓN (hasta 7 puntos, según rúbrica de evaluación):  \myAcademicTutorGrade}\vspace*{-5.5pt}\\
+  \cellcolor[HTML]{FFFFFF}\\
+\hline
+\end{tabular}
+
+
+\begin{description}
+  \item[Comentarios:] %\textit{(A rellenar por el/la tutor/a)}
+\end{description}
+% \vspace{4cm}
+\vfill{}
+
+\noindent En Alcalá de Henares a la fecha de la firma digital % \myThesisDefenseDate
+
+\ifthenelse{\equal{\myCoTutorFullName}{}}
+{
+  \centering
+\begin{table}[ht]
+  \centering
+
+  \begin{tabular}{|p{8cm}|} % Using p{} for fixed-width columns
+    \cline{1-1}
+    \begin{minipage}{8cm} % Corrected minipage usage
+      \centering
+      \vspace{0.5cm} % Space for signature
+      \expandafter\makefirstuc\expandafter{\wordTutorOrTutora} \\
+      \vspace{2cm} % Space for signature
+      Fdo: \myAcademicTutorFullName
+      \vspace{0.5cm} % Space for signature
+    \end{minipage}
+    \\ \cline{1-1}
+  \end{tabular}
+
+\end{table}
+}
+{
+\begin{table}[ht]
+  \centering
+
+  \begin{tabular}{|p{8cm}|p{8cm}|} % Using p{} for fixed-width columns
+    \cline{1-2}
+    \begin{minipage}{8cm} % Corrected minipage usage
+      \centering
+      \vspace{0.2cm} % Space for signature
+      \expandafter\makefirstuc\expandafter{\wordTutorOrTutora} \\
+      \vspace{2cm} % Space for signature
+      Fdo: \myAcademicTutorFullName
+      \vspace{0.2cm} % Space for signature
+    \end{minipage}
+    &
+    \begin{minipage}{8cm} % Corrected minipage usage
+      \centering
+      \vspace{0.2cm} % Space for signature
+      \expandafter\makefirstuc\expandafter{\wordCoTutorOrCoTutora} \\
+      \vspace{2cm} % Space for signature
+      Fdo: \myCoTutorFullName
+      \vspace{0.2cm} % Space for signature
+    \end{minipage}
+    \\
+    \cline{1-2}
+  \end{tabular}
+
+\end{table}
+}
+
+\newpage
+
+\thispagestyle{plain}
+
+
+\input{../Config/rubricaTFGTutor.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% END Report content
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}
