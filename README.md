@@ -1,6 +1,4 @@
-# JoularJX para el TFG — Guía para no perdernos (otra vez)
-
-Esto es la chuleta de todo lo que hicimos para dejar JoularJX funcionando de verdad, en Linux, después de que Windows nos diera por saco con un bug del driver de AMD que ni el propio desarrollador ha arreglado del todo. Está escrito para que dentro de 3 meses, cuando se nos haya olvidado todo, podamos volver aquí y no tengamos que reinventar la rueda.
+# JoularJX — Guía
 
 ## Qué es JoularJX
 
@@ -8,7 +6,7 @@ Es un agente de Java que se engancha al programa cuando lo arrancamos y nos dice
 
 ## Por qué en Linux y no en Windows
 
-Porque en Windows hace falta un driver + un programa intermedio (Scaphandre / WinPowerMonitor) para leer la energía de la CPU, y ese driver tiene un bug conocido con procesadores AMD Ryzen (issue abierto en su GitHub desde 2025, sin arreglo real). Da igual lo que se instale, siempre falla con "función incorrecta". En Linux, el propio kernel expone la energía directamente vía RAPL, sin necesitar nada de eso. Menos piezas, menos lío.
+Porque en Windows hace falta un driver + un programa intermedio (Scaphandre / WinPowerMonitor) para leer la energía de la CPU, y ese driver tiene un bug conocido con procesadores AMD Ryzen (issue abierto en su GitHub desde 2025). Da igual lo que se instale, siempre falla con "función incorrecta". En Linux, el propio kernel expone la energía directamente vía RAPL, sin necesitar nada de eso. Menos piezas, menos lío.
 
 Si algún día queremos intentarlo otra vez en Windows, el bug está documentado aquí: https://github.com/joular/WinPowerMonitor/issues/2
 
