@@ -2,5 +2,7 @@ target/
 joularjx-result/
 joularjx/target/
 joularjx/joularjx-result/
+dependency-reduced-pom.xml
+*.class
 .*.swp
 .~lock.*#
