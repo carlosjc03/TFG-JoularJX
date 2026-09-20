@@ -1,0 +1,4 @@
+com.tfg.jsonbench.gson.GsonBenchmark.deserializar,485.9583
+com.tfg.jsonbench.gson.GsonBenchmark.serializar,526.7525
+com.tfg.jsonbench.jackson.JacksonBenchmark.deserializar,517.3687
+com.tfg.jsonbench.jackson.JacksonBenchmark.serializar,495.5177
