@@ -1,0 +1,3 @@
+com.tfg.jsonbench.jackson.JacksonBenchmark.serializar,495.5177
+com.tfg.jsonbench.jackson.jmh_generated.JacksonBenchmark_serializar_jmhTest.serializar_avgt_jmhStub,2.9532
+com.tfg.jsonbench.jackson.JacksonBenchmark.preparar,4.4369

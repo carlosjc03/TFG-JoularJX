@@ -1,0 +1,7 @@
+java.lang.ref.Reference.waitForReferencePendingList,0.0000
+java.util.HashMap.getNode,0.1585
+com.google.gson.stream.JsonReader.doPeek,2.0605
+com.google.gson.stream.JsonReader.consumeNonExecutePrefix,2.3776
+java.lang.StringLatin1.hashCode,0.7925
+com.google.gson.stream.JsonReader.peekNumber,0.1585
+com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$2.readIntoField,0.1585

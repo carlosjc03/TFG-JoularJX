@@ -1,0 +1,3 @@
+com.tfg.jsonbench.jackson.JacksonBenchmark.deserializar,517.3687
+com.tfg.jsonbench.jackson.jmh_generated.JacksonBenchmark_deserializar_jmhTest.deserializar_AverageTime,0.3559
+com.tfg.jsonbench.jackson.JacksonBenchmark.preparar,4.7970

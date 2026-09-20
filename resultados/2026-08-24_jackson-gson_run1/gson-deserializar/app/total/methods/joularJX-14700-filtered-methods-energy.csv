@@ -1,0 +1,3 @@
+com.tfg.jsonbench.gson.GsonBenchmark.deserializar,485.9583
+com.tfg.jsonbench.gson.GsonBenchmark.preparar,0.9073
+com.tfg.jsonbench.gson.jmh_generated.GsonBenchmark_deserializar_jmhTest.deserializar_avgt_jmhStub,2.2983

@@ -1,0 +1,3 @@
+com.tfg.jsonbench.gson.jmh_generated.GsonBenchmark_serializar_jmhTest.serializar_AverageTime;com.tfg.jsonbench.gson.jmh_generated.GsonBenchmark_serializar_jmhTest._jmh_tryInit_f_gsonbenchmark0_0;com.tfg.jsonbench.gson.GsonBenchmark.preparar,0.9610
+com.tfg.jsonbench.gson.jmh_generated.GsonBenchmark_serializar_jmhTest.serializar_AverageTime;com.tfg.jsonbench.gson.jmh_generated.GsonBenchmark_serializar_jmhTest.serializar_avgt_jmhStub,0.3540
+com.tfg.jsonbench.gson.jmh_generated.GsonBenchmark_serializar_jmhTest.serializar_AverageTime;com.tfg.jsonbench.gson.jmh_generated.GsonBenchmark_serializar_jmhTest.serializar_avgt_jmhStub;com.tfg.jsonbench.gson.GsonBenchmark.serializar,526.7525

@@ -1,0 +1,7 @@
+com.google.gson.stream.JsonWriter.string,3.3800
+com.google.gson.stream.JsonWriter.openScope,0.5633
+com.google.gson.stream.JsonWriter.writeDeferredName,2.0656
+com.google.gson.internal.bind.TypeAdapterRuntimeTypeWrapper.write,0.9389
+com.google.gson.stream.JsonWriter.endArray,0.3756
+com.google.gson.stream.JsonWriter.endObject,0.1878
+java.lang.ref.Reference.waitForReferencePendingList,0.0000

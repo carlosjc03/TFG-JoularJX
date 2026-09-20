@@ -141,8 +141,8 @@ Este Trabajo Fin de Grado propone estudiar JoularJX en profundidad y
 aplicarla a un caso de experimentación concreto: la comparación del
 consumo energético de Jackson~\cite{jackson} y Gson~\cite{gson}, las dos
 librerías Java de procesamiento de JSON más utilizadas. Ambas resuelven
-el mismo problema funcional ---serializar y deserializar objetos Java a
-formato JSON--- pero con arquitecturas internas radicalmente distintas,
+el mismo problema funcional (serializar y deserializar objetos Java a
+formato JSON), pero con arquitecturas internas radicalmente distintas,
 lo que las convierte en un caso de estudio ideal para analizar cómo las
 decisiones de diseño del software impactan en su eficiencia
 energética~\cite{noureddine2025}.
@@ -165,11 +165,13 @@ Los objetivos específicos de este proyecto son los siguientes:
 \begin{itemize}
 \item Comprender cómo mide JoularJX el consumo energético a nivel de
   método Java: arquitectura de agente, muestreo de \textit{stacktrace},
-  fuentes de datos (RAPL, Power Monitor para Windows) y formatos de
-  salida.
+  fuentes de datos (la interfaz Intel RAPL expuesta por el subsistema
+  \texttt{powercap} del núcleo Linux) y formatos de salida.
 
-\item Instalar y configurar JoularJX en un entorno Windows~11,
-  documentando el proceso paso a paso.
+\item Instalar y configurar JoularJX en un entorno GNU/Linux,
+  documentando el proceso paso a paso, incluida la verificación de la
+  disponibilidad de los contadores RAPL y los permisos de lectura sobre
+  \texttt{/sys/class/powercap}.
 
 \item Preparar un banco de pruebas reproducible sobre las librerías
   Jackson y Gson que permita medir su consumo energético en operaciones
@@ -208,12 +210,14 @@ entre Jackson y Gson. Los componentes principales son los siguientes:
   mecanismo de muestreo de \textit{stacktrace}, fuentes de energía según
   la plataforma y formato de salida CSV.
 
-\item \textbf{Instalación y configuración del entorno.} Instalación de JoularJX
-  (\textit{jar} del agente), de Power Monitor for
-  Windows~\cite{winpowermonitor} (lectura de los MSR de RAPL en Windows)
-  y configuración del fichero \texttt{config.properties}. Verificación
-  del funcionamiento con un programa Java de prueba. Descarga de
-  Jackson~\cite{jackson} y Gson~\cite{gson} desde Maven Central.
+\item \textbf{Instalación y configuración del entorno.} Instalación de
+  JoularJX (\textit{jar} del agente) sobre GNU/Linux, comprobación de que
+  el procesador expone los contadores RAPL a través del subsistema
+  \texttt{powercap}, ajuste de los permisos de lectura de los ficheros
+  \texttt{energy\_uj} y configuración del fichero
+  \texttt{config.properties}. Verificación del funcionamiento con un
+  programa Java de prueba. Descarga de Jackson~\cite{jackson} y
+  Gson~\cite{gson} desde Maven Central.
 
 \item \textbf{Diseño del banco de pruebas.} Diseño de un conjunto de casos de
   prueba equivalentes para ambas librerías: serialización y
@@ -254,8 +258,9 @@ sección~\ref{sec:objetivos-y-campo}:
 \item Lectura de los artículos sobre JoularJX y de la literatura sobre
   consumo energético del software.
 
-\item Instalación de JoularJX y de Power Monitor for Windows, y
-  verificación del entorno con un programa de prueba.
+\item Instalación de JoularJX sobre GNU/Linux, comprobación del acceso
+  a los contadores RAPL y verificación del entorno con un programa de
+  prueba.
 
 \item Estudio de las arquitecturas de Jackson y Gson, y diseño del banco
   de pruebas con JMH.
@@ -319,15 +324,12 @@ Las herramientas y recursos necesarios para desarrollar este proyecto
 son los siguientes:
 
 \begin{itemize}
-\item Ordenador personal con Windows~11 y procesador Intel o AMD (a
-  partir de Ryzen), con soporte de RAPL.
+\item Ordenador personal con sistema operativo GNU/Linux (Ubuntu) y
+  procesador Intel o AMD (a partir de Ryzen) con soporte de RAPL.
 
 \item JDK~11 o superior y Apache Maven.
 
 \item JoularJX (agente Java, licencia GPL-3.0)~\cite{joularjxrepo}.
-
-\item Power Monitor for Windows, para la lectura de los contadores RAPL
-  en Windows~\cite{winpowermonitor}.
 
 \item Jackson Databind (FasterXML, Apache~2.0)~\cite{jackson} y Gson
   (Google, Apache~2.0)~\cite{gson}, disponibles en Maven Central.

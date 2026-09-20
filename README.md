@@ -10,6 +10,42 @@ Porque en Windows hace falta un driver + un programa intermedio (Scaphandre / Wi
 
 Si algún día queremos intentarlo otra vez en Windows, el bug está documentado aquí: https://github.com/joular/WinPowerMonitor/issues/2
 
+## Estructura de carpetas del TFG
+
+Así está organizado todo dentro de `~/Escritorio/tfg/`:
+
+```
+tfg/
+├── joularjx-tool/                    → la herramienta JoularJX (clonada de GitHub).
+│                                       NO se toca su código ni su pom.xml.
+│                                       Aquí vive el jar del agente: target/joularjx-3.1.0.jar
+│
+├── pruebas/                          → todo el código que medimos
+│   ├── ejemplo-basico/               → la prueba de verificación del entorno
+│   │   ├── com/tfg/pruebas/          → Ejemplo.java (+ .class al compilar)
+│   │   ├── config.properties         → con filter-method-names=com.tfg.pruebas
+│   │   └── joularjx-result/          → resultados de esta prueba (ignorado por Git)
+│   │
+│   └── jackson-gson-benchmark/       → el proyecto real del TFG
+│       ├── pom.xml                   → dependencias (Jackson, Gson, JMH) + plugins
+│       ├── config.properties         → con filter-method-names=com.tfg.jsonbench
+│       ├── src/main/java/com/tfg/jsonbench/
+│       │   ├── Persona.java          → objeto de datos común
+│       │   ├── jackson/JacksonBenchmark.java
+│       │   └── gson/GsonBenchmark.java
+│       ├── target/                   → lo que genera Maven (ignorado por Git)
+│       └── joularjx-result/          → resultados de los benchmarks (ignorado por Git)
+│
+├── resultados/                       → copia de las mediciones BUENAS, organizadas
+│                                       y con nombres legibles. Esta SÍ va a Git.
+│
+├── 00-PhDTFMTFG-LaTeX-Template-UAH-v4.2.4h/  → plantilla LaTeX de la UAH
+├── Anteproyecto_TFG_JoularJX.docx    → anteproyecto base
+└── README.md                         → este documento
+```
+
+**Idea clave:** cada proyecto que se quiera medir vive en su propia carpeta dentro de `pruebas/`, y cada uno lleva **su propio `config.properties`** (con su filtro ajustado a su paquete). Así no hay que estar cambiando el filtro cada vez que se salta de un proyecto a otro.
+
 ## Requisitos
 
 - Ubuntu/Debian (o derivado)
@@ -28,7 +64,7 @@ Java, Maven y git, todo de una:
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install openjdk-17-jdk maven git acl -y
+sudo apt install openjdk-25-jdk maven git acl -y
 ```
 
 Comprobar que se instaló bien:
@@ -38,7 +74,7 @@ java -version
 mvn -version
 ```
 
-(Con Java 17 vamos sobrados, JoularJX solo pide 11+.)
+(Con Java 25 vamos sobrados, JoularJX solo pide 11+.)
 
 ## Paso 2: clonar y compilar JoularJX
 
@@ -91,7 +127,7 @@ Crear un `Test.java` cualquiera que tarde un poco en ejecutarse (para que dé ti
 nano Test.java
 ```
 
-Pegar esto:
+Pegar codigo de ejemplo:
 
 ```java
 public class Test {
@@ -112,7 +148,7 @@ javac Test.java
 sudo java -javaagent:target/joularjx-3.1.0.jar Test
 ```
 
-Si todo va bien, sale algo como:
+Si todo va bien, sale:
 
 ```
 Program consumed 37,16 joules
@@ -134,7 +170,7 @@ cat joularjx-result/CARPETA_QUE_HAYA_SALIDO/app/total/methods/joularJX-*-filtere
 
 (Cambiar `CARPETA_QUE_HAYA_SALIDO` por el nombre real que haya salido en el `ls` de arriba.)
 
-Debería salir algo como:
+Debería salir:
 
 ```
 Test.main,34.4440
@@ -154,30 +190,41 @@ Eso es: el método, y los julios que ha consumido. Eso es justo lo que necesitam
 Cada vez que queramos medir algo nuevo, en el 90% de los casos solo hace falta esto:
 
 ```bash
+# 0. Situarse en la carpeta del proyecto que se va a medir
+cd ~/Escritorio/tfg/pruebas/EL_PROYECTO
+
 # 1. Compilar el código (solo si se ha cambiado)
-javac TuClase.java
+javac com/ruta/TuClase.java
 # o si es un proyecto Maven completo:
-mvn package
+mvn clean package
 
 # 2. Ejecutar con el agente
-sudo java -javaagent:/ruta/a/joularjx-3.1.0.jar TuClasePrincipal
+#    - Clase suelta: el agente va en el comando
+sudo java -javaagent:$HOME/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar com.paquete.TuClase
+#    - Proyecto JMH: el agente ya va dentro del código (@Fork), así que solo:
+sudo java -jar target/benchmarks.jar
 
 # 3. Mirar los resultados (carpeta más reciente)
-ls joularjx-result/
-cat joularjx-result/CARPETA/app/total/methods/joularJX-*-filtered-methods-energy.csv
+cat joularjx-result/$(ls -t joularjx-result/ | head -1)/app/total/methods/joularJX-*-filtered-methods-energy.csv
 ```
 
-El `config.properties` (el filtro del paso 4) solo se toca UNA VEZ por proyecto, no en cada ejecución.
+Dos cosas que solo se hacen UNA VEZ por proyecto, no en cada ejecución:
+- Copiar el `config.properties` a la carpeta del proyecto.
+- Ajustar su `filter-method-names` al paquete de ese proyecto.
 
 ## Crear una clase de prueba con paquete (para probar el filtro tipo com.tfg.xxx)
 
 Esto es útil para practicar el filtro `filter-method-names` tal y como se usará luego con Jackson/Gson (que sí van a tener paquete), en vez de una clase suelta como `Test.java`.
 
-**Paso 1: crear la carpeta que refleja el paquete**
+Esta prueba vive en `~/Escritorio/tfg/pruebas/ejemplo-basico/`. Todos los comandos de esta sección se ejecutan desde ahí.
 
-El paquete `com.tfg.pruebas` se traduce en la carpeta `com/tfg/pruebas/`. Crearla desde donde queramos tener el proyecto (no hace falta que esté dentro de `joularjx/`):
+**Paso 1: crear la carpeta del proyecto y la que refleja el paquete**
+
+El paquete `com.tfg.pruebas` se traduce en la carpeta `com/tfg/pruebas/`. Ojo: son dos cosas distintas — la carpeta del proyecto (`ejemplo-basico/`) y, dentro de ella, el árbol de carpetas del paquete:
 
 ```bash
+mkdir -p ~/Escritorio/tfg/pruebas/ejemplo-basico
+cd ~/Escritorio/tfg/pruebas/ejemplo-basico
 mkdir -p com/tfg/pruebas
 nano com/tfg/pruebas/Ejemplo.java
 ```
@@ -200,7 +247,7 @@ public class Ejemplo {
 
 Guardar (`Ctrl+O`, Enter, `Ctrl+X`).
 
-**Paso 3: compilar desde la carpeta raíz del proyecto (NO desde dentro de com/tfg/pruebas)**
+**Paso 3: compilar desde la raíz del proyecto (desde `ejemplo-basico/`, NO desde dentro de com/tfg/pruebas)**
 
 ```bash
 javac com/tfg/pruebas/Ejemplo.java
@@ -214,7 +261,7 @@ ls com/tfg/pruebas/
 
 **Paso 4: copiar el config.properties de joularjx a esta carpeta**
 
-Como el proyecto está fuera de `joularjx/`, JoularJX necesita su propia copia del config en el sitio desde donde se ejecuta `java`:
+JoularJX busca el `config.properties` en el directorio desde donde se lanza `java`. Como el proyecto está fuera de `joularjx-tool/`, necesita aquí su propia copia:
 
 ```bash
 cp ~/Escritorio/tfg/joularjx-tool/config.properties .
@@ -300,7 +347,7 @@ overwrite-call-trees-runtime-data=true
 stack-monitoring-sample-rate=10
 # Milisegundos entre cada lectura del stacktrace (rango 1-1000).
 # Más bajo = más preciso pero más overhead del propio agente.
-# Interesante para la sección de "limitaciones" del TFG: comparar resultados con distintos valores.
+# Interesante para la sección de "limitaciones": comparar resultados con distintos valores.
 
 # --- Servidores de aplicaciones ---
 application-server=false
@@ -654,7 +701,7 @@ public class GsonBenchmark {
 }
 ```
 
-**Ojo:** en el `@Fork` de las dos clases hay que poner la ruta real al jar del agente. Aquí está puesta `/home/carlos/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar` — comprobar que coincide con la tuya (con `ls`).
+**Ojo:** en el `@Fork` de las dos clases hay que poner la ruta real al jar del agente.  `/home/carlos/Escritorio/tfg/joularjx-tool/target/joularjx-3.1.0.jar` (de momento asi que es como tengo organizado todo por carpetas, a malas lo puedo comprobanr con ls)
 
 ### Paso 5: añadir los plugins al pom.xml
 
@@ -705,7 +752,7 @@ Editar el `pom.xml` y añadir este bloque **justo después de** `</dependencies>
     </build>
 ```
 
-(Si hay dudas de cómo queda el `pom.xml` entero con todo junto, está montado completo al final de este documento, en el apartado "pom.xml completo de referencia".)
+(Para ver como queda el `pom.xml` entero con todo junto, está montado completo al final de este readme, en el apartado "pom.xml completo de referencia".)
 
 ### Paso 6: ajustar el filtro de JoularJX al paquete
 
@@ -802,7 +849,7 @@ Regla simple: en cada CSV, quedarse con la línea cuyo método sea `serializar` 
 
 Durante la ejecución sale por consola `Program consumed 528,89 joules` (o similar) varias veces. Ese número es el consumo de **TODO el proceso** (arranque de la JVM, warmup, JMH, todo junto). El CSV filtrado (`app/`) es el que aísla solo el consumo de NUESTRO método, que es el que sirve para comparar de forma justa. No confundir uno con otro.
 
-### MUY IMPORTANTE para el TFG: una sola ejecución no vale
+### MUY IMPORTANTE: una sola ejecución no vale
 
 Estos números (~500 julios) son de UNA sola ejecución. Hay variabilidad real entre corridas (estado de la CPU, temperatura, RAPL, etc.). Cuando las diferencias son de ~30 julios sobre 500, podrían estar dentro del margen de ruido. Para la memoria hay que **repetir la medición varias veces (5-10 corridas), sacar la media y la desviación**, y solo entonces sacar conclusiones. Una sola ejecución sirve para verificar que el montaje funciona, no como resultado definitivo.
 
@@ -814,9 +861,81 @@ Estos números (~500 julios) son de UNA sola ejecución. Hay variabilidad real e
 - Probar distintos valores de `stack-monitoring-sample-rate` para ver el trade-off precisión vs overhead (sección de limitaciones).
 - Explorar los datos adicionales (`runtime/` para evolución temporal, `calltrees/` para hotspots) como material complementario.
 
+## Guardar las mediciones buenas en resultados/
+
+### Por qué hace falta (el tema del .gitignore)
+
+El `.gitignore` es la lista de cosas que Git NO sube a GitHub. En este proyecto tiene `joularjx-result/`, lo cual está bien puesto (no queremos subir cada resultado de cada prueba suelta), pero tiene una consecuencia importante: **las mediciones solo existen en el portátil**. Si se pierde el disco, se pierden los datos.
+
+La carpeta `resultados/` **no** está ignorada, así que lo que se meta ahí sí viaja a GitHub. De ahí la rutina: cuando una tanda de mediciones sea buena (de las que van a la memoria), se copia a `resultados/` y queda a salvo y versionada.
+
+### ANTES de copiar: recuperar la propiedad de los ficheros
+
+Como el agente se ejecuta con `sudo` (hace falta para leer RAPL), **todo lo que escribe JoularJX queda a nombre de root**. Al intentar mover o copiar esas carpetas con el usuario normal sale `Permiso denegado`.
+
+Solución, cada vez que se termina una tanda de mediciones:
+
+```bash
+sudo chown -R $USER:$USER ~/Escritorio/tfg/pruebas/jackson-gson-benchmark/joularjx-result
+```
+
+(Cambiar la ruta por la del proyecto que toque.) Si alguna vez sale "permiso denegado" sobre una carpeta de resultados, **siempre es esto**.
+
+### Copiar la tanda con nombres legibles
+
+Las carpetas que genera JoularJX se llaman tipo `14879-1787756656320` (PID + timestamp), que no dice nada. Al copiarlas se les pone un nombre que se entienda.
+
+```bash
+cd ~/Escritorio/tfg
+mkdir -p resultados/2026-08-24_jackson-gson_run1
+
+cp -r pruebas/jackson-gson-benchmark/joularjx-result/CARPETA_1 \
+      resultados/2026-08-24_jackson-gson_run1/gson-deserializar
+cp -r pruebas/jackson-gson-benchmark/joularjx-result/CARPETA_2 \
+      resultados/2026-08-24_jackson-gson_run1/gson-serializar
+cp -r pruebas/jackson-gson-benchmark/joularjx-result/CARPETA_3 \
+      resultados/2026-08-24_jackson-gson_run1/jackson-deserializar
+cp -r pruebas/jackson-gson-benchmark/joularjx-result/CARPETA_4 \
+      resultados/2026-08-24_jackson-gson_run1/jackson-serializar
+```
+
+Notas:
+- `cp -r` copia la carpeta entera con todo lo de dentro (no solo el CSV). Merece la pena: dentro va también `runtime/`, `calltrees/` y `evolution/`, que hoy no usamos pero que pueden hacer falta en el análisis. Pesan poco.
+- Lo de `run1` es a propósito: como hay que repetir las mediciones varias veces para promediar, luego habrá `run2`, `run3`... y así no se mezclan.
+- Para saber qué carpeta es cuál, o se mira el log de la ejecución (JoularJX imprime `Results will be stored in joularjx-result/XXXX/` antes de cada benchmark), o se mira dentro del CSV qué método aparece.
+
+### Generar un resumen con las cifras clave
+
+Esto rebusca dentro de las cuatro carpetas las líneas que importan (las de julios de cada método) y las junta en un solo fichero, para no tener que abrir cuatro CSV distintos:
+
+```bash
+cd ~/Escritorio/tfg
+grep -rh "Benchmark\.\(serializar\|deserializar\)," \
+  resultados/2026-08-24_jackson-gson_run1/*/app/total/methods/joularJX-*-filtered-methods-energy.csv \
+  > resultados/2026-08-24_jackson-gson_run1/resumen.csv
+
+cat resultados/2026-08-24_jackson-gson_run1/resumen.csv
+```
+
+El `>` significa "guarda la salida en este fichero" en vez de imprimirla por pantalla.
+
+### Cómo queda al final
+
+```
+resultados/
+└── 2026-08-24_jackson-gson_run1/
+    ├── gson-serializar/          → copia completa de la medición
+    ├── gson-deserializar/
+    ├── jackson-serializar/
+    ├── jackson-deserializar/
+    └── resumen.csv               → las 4 cifras de julios, juntas
+```
+
+Y cuando se repitan las mediciones, al lado irán `2026-XX-XX_jackson-gson_run2/`, `run3/`, etc.
+
 ## Siguiente paso pendiente
 
-El montaje completo funciona de punta a punta. Lo que queda es el trabajo de análisis del TFG: repetir las mediciones varias veces para promediar, ampliar los casos de prueba (tamaños de payload, objeto complejo), copiar los CSV buenos a la carpeta `resultados/`, y redactar el análisis comparativo (consumo por operación, hotspots, limitaciones).
+El montaje completo funciona de punta a punta. Lo que queda es el trabajo de análisis del TFG: repetir las mediciones varias veces (run2, run3...) para promediar, ampliar los casos de prueba (tamaños de payload, objeto complejo), ir guardando cada tanda en `resultados/`, y redactar el análisis comparativo (consumo por operación, hotspots, limitaciones).
 
 ## pom.xml completo de referencia
 
