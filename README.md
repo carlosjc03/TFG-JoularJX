@@ -5,9 +5,7 @@
 Es un agente de Java que se engancha al programa cuando lo arrancamos y nos dice **cuánta energía consume cada método**, sin tener que tocar el código para nada
 ## Por qué en Linux y no en Windows
 
-Porque en Windows hace falta un driver + un programa intermedio (Scaphandre / WinPowerMonitor) para leer la energía de la CPU, y ese driver tiene un bug conocido con procesadores AMD Ryzen (issue abierto en su GitHub desde 2025). Da igual lo que se instale, siempre falla con "función incorrecta". En Linux, el propio kernel expone la energía directamente vía RAPL, sin necesitar nada de eso. Menos piezas, menos lío.
-
-Si algún día queremos intentarlo otra vez en Windows, el bug está documentado aquí: https://github.com/joular/WinPowerMonitor/issues/2
+Porque en Windows hace falta un driver + un programa intermedio (Scaphandre / WinPowerMonitor) para leer la energía de la CPU, y ese driver tiene un bug conocido con procesadores AMD Ryzen (issue abierto en su GitHub desde 2025 https://github.com/joular/WinPowerMonitor/issues/2 ). En Linux, el propio kernel expone la energía directamente vía RAPL, sin necesitar nada de eso.
 
 ## Estructura de carpetas del TFG
 
