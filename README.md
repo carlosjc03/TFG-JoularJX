@@ -40,7 +40,7 @@ tfg/
 └── README.md                         → este documento
 ```
 
-**Idea clave:** cada proyecto que se quiera medir vive en su propia carpeta dentro de `pruebas/`, y cada uno lleva **su propio `config.properties`** (con su filtro ajustado a su paquete). Así no hay que estar cambiando el filtro cada vez que se salta de un proyecto a otro.
+Cada proyecto que se quiera medir vive en su propia carpeta dentro de `pruebas/`, y cada uno lleva **su propio `config.properties`** (con su filtro ajustado a su paquete). Así no hay que estar cambiando el filtro cada vez que se salta de un proyecto a otro.
 
 ## Requisitos
 
@@ -172,11 +172,11 @@ Debería salir:
 Test.main,34.4440
 ```
 
-Eso es: el método, y los julios que ha consumido. Eso es justo lo que necesitamos para el TFG.
+Eso es: el método, y los julios que ha consumido
 
 ### Qué carpetas hay ahí dentro
 
-- `app/total/methods/` → consumo total de NUESTRO código, ya filtrado. **Esta es la que más vamos a usar.**
+- `app/total/methods/` → consumo total de NUESTRO código, ya filtrado. **En teoría esta es la que más vamos a usar.**
 - `all/total/methods/` → consumo de TODO, incluido lo del JDK por debajo.
 - `runtime/` → cómo evoluciona el consumo mientras se ejecuta el programa.
 - `calltrees/` → consumo por árbol de llamadas completo, no solo método suelto.
@@ -366,14 +366,11 @@ joular-core-parameters=-c cpu -i
 joular-core-ringbuffer-path=/dev/shm/joularcorering
 ```
 
-**En resumen, para nuestro caso (Linux, JMH standalone) solo tocamos normalmente:**
+**En resumen, para este caso (Linux, JMH standalone) solo tocamos normalmente:**
 - `filter-method-names` → una vez por proyecto, obligatorio
 - `stack-monitoring-sample-rate` → opcional, solo si queremos estudiar precisión vs overhead
 - El resto ya viene bien por defecto tal cual está en el repo
 
-### Sobre el JoularJX Reader (GUI)
-
-Existe una GUI oficial llamada JoularJX Reader para visualizar los resultados, pero **es solo para Windows** (hecha en C#/WinUI3, necesita Visual Studio para compilarla). En Linux no sirve. Para ver los CSV basta con abrirlos en LibreOffice Calc, o si queremos graficarlos para la memoria, con Python (pandas + matplotlib).
 
 ## Montar el proyecto de Jackson + Gson (dependencias con Maven)
 
