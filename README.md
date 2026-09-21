@@ -1,9 +1,8 @@
-# JoularJX — Guía
+# JoularJX — Apuntes
 
 ## Qué es JoularJX
 
-Es un agente de Java que se engancha al programa cuando lo arrancamos y nos dice **cuánta energía consume cada método**, sin tener que tocar el código para nada. Perfecto para el TFG de comparar Jackson vs Gson.
-
+Es un agente de Java que se engancha al programa cuando lo arrancamos y nos dice **cuánta energía consume cada método**, sin tener que tocar el código para nada
 ## Por qué en Linux y no en Windows
 
 Porque en Windows hace falta un driver + un programa intermedio (Scaphandre / WinPowerMonitor) para leer la energía de la CPU, y ese driver tiene un bug conocido con procesadores AMD Ryzen (issue abierto en su GitHub desde 2025). Da igual lo que se instale, siempre falla con "función incorrecta". En Linux, el propio kernel expone la energía directamente vía RAPL, sin necesitar nada de eso. Menos piezas, menos lío.
@@ -12,11 +11,11 @@ Si algún día queremos intentarlo otra vez en Windows, el bug está documentado
 
 ## Estructura de carpetas del TFG
 
-Así está organizado todo dentro de `~/Escritorio/tfg/`:
+Así está organizado todo:
 
 ```
 tfg/
-├── joularjx-tool/                    → la herramienta JoularJX (clonada de GitHub).
+├── joularjx-tool/                    → la herramienta JoularJX
 │                                       NO se toca su código ni su pom.xml.
 │                                       Aquí vive el jar del agente: target/joularjx-3.1.0.jar
 │
@@ -37,10 +36,9 @@ tfg/
 │       └── joularjx-result/          → resultados de los benchmarks (ignorado por Git)
 │
 ├── resultados/                       → copia de las mediciones BUENAS, organizadas
-│                                       y con nombres legibles. Esta SÍ va a Git.
+│                                       y con nombres legibles
 │
 ├── 00-PhDTFMTFG-LaTeX-Template-UAH-v4.2.4h/  → plantilla LaTeX de la UAH
-├── Anteproyecto_TFG_JoularJX.docx    → anteproyecto base
 └── README.md                         → este documento
 ```
 
