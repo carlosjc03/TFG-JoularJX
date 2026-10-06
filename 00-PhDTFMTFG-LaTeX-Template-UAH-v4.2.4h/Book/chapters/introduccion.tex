@@ -24,25 +24,61 @@
 
 \chapter{Introducción}
 \label{cha:introduccion}
+%
+%\begin{FraseCelebre}
+%  \begin{Frase}
+%    Desocupado lector, sin juramento me podrás creer que quisiera que este libro [...] fuera el más hermoso, el más gallardo y más discreto que pudiera imaginarse\footnote{Tomado de ejemplos del proyecto \texis{}.}.
+%  \end{Frase}
+%  \begin{Fuente}
+%    Miguel de Cervantes, Don Quijote de la Mancha
+%  \end{Fuente}
+%\end{FraseCelebre}
 
-\begin{FraseCelebre}
-  \begin{Frase}
-    Desocupado lector, sin juramento me podrás creer que quisiera que este libro [...] fuera el más hermoso, el más gallardo y más discreto que pudiera imaginarse\footnote{Tomado de ejemplos del proyecto \texis{}.}.
-  \end{Frase}
-  \begin{Fuente}
-    Miguel de Cervantes, Don Quijote de la Mancha
-  \end{Fuente}
-\end{FraseCelebre}
 
+\section{Contexto y motivación}
+\label{sec:contexto-motivacion}
 
-\section{Presentación}
-\label{sec:presentacion}
+El consumo energético de la informática se ha convertido en una preocupación
+importante dentro del debate sobre la sostenibilidad digital. Durante las
+últimas décadas, casi todos los esfuerzos por gastar menos energía se han
+centrado en el hardware, y ahí los avances han sido enormes.
 
-Esta plantilla\footnote{Asegúrate de compilar de nuevo el documento (como cuenta la sección~\ref{sec:compilacion}), para verificar que todo funciona y por si ha habido algún cambio en los fuentes que no está reflejado en los pdf de ejemplo precompilados.} pretende proporcionar un conjunto de estilos consistentes y unificados para cubrir las necesidades de generación de memorias \LaTeX{} para cada uno de los TFCs/TFMs/TFGs y tesis doctorales que se generen en la Escuela Politécnica Superior de la Universidad de Alcalá\footnote{También se incluye la definición para las tesis de la Escuela Técnica Superior de Ingenieros de Telecomunicación de la Universidad Politécnica de Madrid. La extensión a los TFGs de la misma es sencilla, aunque no se ha realizado por el momento.}.
+Un ejemplo es la fabricación de los procesadores. Al reducir el tamaño de los
+transistores se pueden colocar muchos más en el mismo espacio de chip (lo que
+se conoce como ley de Moore), de modo que cada nueva generación ofrece más
+potencia y, a la vez, gasta menos energía en realizar el mismo trabajo. A esto
+se suma la evolución de las arquitecturas de procesador. Los diseños de tipo
+\emph{big.LITTLE} \cite{armbiglittle}, propios de la arquitectura ARM, combinan núcleos potentes
+con núcleos de bajo consumo y reparten el trabajo entre ellos según lo que haga
+falta en cada momento, de forma que las tareas ligeras apenas consumen batería.
+Este enfoque nació en los móviles, pero ha funcionado tan bien que la
+arquitectura ARM se está usando cada vez más en ordenadores de sobremesa y portátiles (como los dispositivos de Apple con chip M) e incluso en servidores y centros
+de datos, donde ahorrar energía supone un ahorro de dinero muy grande.
+% Si quieres, cita aquí ejemplos como AWS Graviton (servidores) o los
+% portátiles con Windows on ARM / Snapdragon.
 
-Para utilizar la plantilla se han generado algunos capítulos genéricos en los que se han incluido secciones ``tutoriales'', en la que se explican algunas de sus características y se muestran ejemplos de elementos típicos que pueden ser de utilidad (pero sin el objetivo de que esto sea una guía de \LaTeX{}).
+El software, en cambio, casi nunca se diseña ni se evalúa pensando en la
+energía que gasta, a pesar de que es él quien decide cómo se usan todos esos
+recursos del hardware \cite{verdecchia2021}.
 
-Igualmente se proporciona un modelo simplificado de un anteproyecto (para el caso de los TFCs/TFMs/TFGs), así como parte de la documentación que hay que presentar para la defensa de los TFGs/TFMs de la Universidad de Alcalá.
+Y esto tiene consecuencias reales. Un mismo problema se puede resolver de
+varias formas distintas que funcionan igual de bien, pero que consumen cantidades
+de energía muy diferentes. Es decir, las decisiones que toma quien programa
+afectan directamente a la energía que gasta el programa al ejecutarse
+\cite{noureddine2025}. A pequeña escala, esto se nota en la batería de
+nuestros dispositivos; a gran escala, en el gasto eléctrico de toda la
+infraestructura de cómputo, que no para de crecer.
+% (Opcional) Añade aquí una cifra concreta sobre el consumo de los centros de
+% datos y cítala, p. ej. un informe de la IEA.
+
+Para poder mejorar esto hace falta, antes de nada, poder medirlo. Así nace la
+llamada \emph{ingeniería del software sostenible} o \emph{green software}, que
+busca tratar la eficiencia energética como un criterio de calidad más, igual
+que lo son el rendimiento o la seguridad. Y para eso resultan imprescindibles
+herramientas capaces de medir cuánta energía consume una aplicación de forma
+fiable y con detalle, de manera que las decisiones de diseño se apoyen en datos
+y no en suposiciones. Este Trabajo Fin de Grado se enmarca precisamente en esa
+necesidad.
 
 
 
