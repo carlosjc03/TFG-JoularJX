@@ -92,7 +92,16 @@ necesidad.
 \section{Descripción del problema}
 \label{sec:descripcion-problema}
 
-Medir cuánta energía consume un programa no es sencillo. Existen varias formas de conocer el consumo del equipo en su conjunto, como los medidores físicos conectados a la corriente, o programas que leen los sensores internos del ordenador (como HWiNFO o HWMonitor) y estiman los vatios que gasta el equipo en tiempo real. El problema de estas herramientas es que miden el consumo de todo el equipo, sin ser capaces de medir el de una aplicación o programa en concreto que se está ejecutando. Además, un programa está formado internamente por muchas partes o funciones que se encargan de tareas distintas (como leer un fichero o procesar datos), y cada una de ellas gasta una cantidad de energía diferente.
+La cantidad de energía que consume un programa no es fácil de medir. Existen
+varias formas de conocer el consumo del equipo en su conjunto, como usar
+medidores físicos que se conectan a la corriente, o programas que leen los
+sensores internos del ordenador (como HWiNFO o HWMonitor) y estiman los vatios
+que gasta el equipo en tiempo real. El problema de estas herramientas es que miden el consumo de todo el equipo, por lo que no es posible saber exactamente cuál es el de una aplicación o programa en concreto que se está ejecutando. Además, un programa está formado
+internamente por muchas partes o funciones que se encargan de realizar tareas
+distintas (como leer un fichero o procesar datos), y cada una de ellas gasta
+una cantidad de energía diferente.
+
+
 
 Por tanto, para mejorar la eficiencia energética de un software, no basta con
 saber cuánto consume el equipo a nivel global, sino que habría que poder medir
@@ -101,9 +110,9 @@ así optimizarlas. Los métodos anteriores no son suficientes para ello, y es aq
 donde aparecen herramientas más específicas para este problema, como JoularJX.
 JoularJX es un agente Java de código abierto desarrollado por el investigador
 Adel Noureddine en la Université de Pau et des Pays de l'Adour
-\cite{joularjx2022, joularjxrepo}, el cual es capaz de medir,
+\cite{joularjx2022, joularjxrepo}, el cual permite medir,
 de forma aproximada, cuánta energía consume cada función de un programa por
-separado, lo que permite identificar cuáles son las que más gastan para poder optimizarlas \cite{joularjx3}.
+separado, y así identificar cuáles son las que más gastan para poder optimizarlas \cite{joularjx3}.
 
 De hecho, que JoularJX esté diseñado específicamente para Java es un detalle importante, ya que es uno de los lenguajes más utilizados a nivel global (sobre todo en servidores y aplicaciones
 empresariales que están en uso durante todo el día), por lo que cualquier mejora en
